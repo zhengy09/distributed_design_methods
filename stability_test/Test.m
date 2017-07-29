@@ -2,12 +2,12 @@
 function Test
    
 %% Generating data
-    N      = 10;
+    N      = 30;
     thresh = 5;
     G    = chordalGen(N,thresh);
 
     A = cell(N,N);
-    n = randi(5,1,N);
+    n = randi(20,1,N);
     %n = ones(1,N);
     for i = 1:N
        A{i,i} = rand(n(i));
@@ -21,7 +21,14 @@ function Test
     end
     
     %% Test
+    try
     [P, info] = dst(A,G);
+    catch
+        k = 1;
+    end
+    
+    [P1, info1] = cst(G,A);
+    %% Centralized solution
     
     
     R = 10;
