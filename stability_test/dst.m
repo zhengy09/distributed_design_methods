@@ -24,9 +24,18 @@ Ge    = chordalExt(G);        % Chordal extension
 Mc    = maximalCliques(Ge);   % Maximal cliques, each column is a clique  
 Nc    = size(Mc,2);           % Number of cliques
 
+%% process the model data such that Ge and A are consistent
 subDimension = zeros(n,1);
 for i = 1:n
     subDimension(i) = size(A{i,i},1);
+end
+
+for i = 1:n
+    for j = 1:n
+        if Ge(i,j) == 1 && isempty(A{i,j})
+            A{i,j} = zeros(subDimension(i),subDimension(j));
+        end
+    end
 end
 
 %% Overlapping information
@@ -144,15 +153,15 @@ for iter = 1:opts.maxIter
         Node{nodeIndex} = nodeProblem(Node{nodeIndex},A{nodeIndex,nodeIndex},opts,iter);
     end
     
-    for i = 1:length(EdgeRepi)
-        for j = 1:length(EdgeRepj)
-            Eind = [EdgeRepi(i),EdgeRepj(j)];
+    for k = 1:length(EdgeRepi)
+        %for j = 1:length(EdgeRepj)
+            Eind = [EdgeRepi(k),EdgeRepj(k)];
             A12  = A{Eind(1),Eind(2)};
             A21  = A{Eind(2),Eind(1)};
             P1   = Node{Eind(1)}.P;
             P2   = Node{Eind(2)}.P;
             Edge{Eind(1),Eind(2)} = edgeProblem(Edge{Eind(1),Eind(2)},A12,A21,P1,P2,opts,iter);
-        end
+        %end
     end
     
     %% Step 3: Overlapping nodes and edges update the dual virables
@@ -161,11 +170,11 @@ for iter = 1:opts.maxIter
         Node{nodeIndex} = nodeMultipliers(Node{nodeIndex},opts,iter);
     end
     
-    for i = 1:length(EdgeRepi)
-        for j = 1:length(EdgeRepj)
-            Eind = [EdgeRepi(i),EdgeRepj(j)];
+    for k = 1:length(EdgeRepi)
+        %for j = 1:length(EdgeRepj)
+            Eind = [EdgeRepi(k),EdgeRepj(k)];
             Edge{Eind(1),Eind(2)} = edgeMultipliers(Edge{Eind(1),Eind(2)},opts,iter);
-        end
+        %end
     end
     %% check convergence & output
     [Stop, Info] = ConverCheck(Node,Edge,NodeOverInd,EdgeRepi,EdgeRepj,opts);
@@ -198,8 +207,8 @@ timeparal  = timeparal + sum(max(timeNode,[],2));
 
 timeEdge   = zeros(iter,length(EdgeRepi)*2); 
 for i = 1:length(EdgeRepi)
-    timesubtotal               = timesubtotal + sum(sum(Edge{EdgeRepi(i),EdgeRepi(j)}.time)); 
-    timeEdge(:,(i-1)*2+1:i*2)  = Edge{EdgeRepi(i),EdgeRepj(j)}.time(1:iter,:); 
+    timesubtotal               = timesubtotal + sum(sum(Edge{EdgeRepi(i),EdgeRepj(i)}.time)); 
+    timeEdge(:,(i-1)*2+1:i*2)  = Edge{EdgeRepi(i),EdgeRepj(i)}.time(1:iter,:); 
 end
 if ~isempty(EdgeRepi)
     timeparal  = timeparal + sum(max(timeEdge,[],2));
