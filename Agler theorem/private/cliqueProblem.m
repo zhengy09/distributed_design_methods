@@ -23,7 +23,7 @@ for i = 1:length(gOverlapInd)
         tmpEdge   = Edge{gOverlapInd(i),gOverlapInd(j)};                            % the edge that is included in this clique
         if length(tmpEdge.clique) > 1 
             tmpClique = find(tmpEdge.clique == CliqueIndex); 
-            Cost      = Cost + (Xk(lOverlapInd(k),lOverlapInd(k)) - tmpEdge.LocalVariables(tmpClique) ...
+            Cost      = Cost + (Xk(lOverlapInd(i),lOverlapInd(j)) - tmpEdge.LocalVariables(tmpClique) ...
                        + 1/opts.mu*tmpEdge.LocalMultipliers(tmpClique)).^2;
         end
     end

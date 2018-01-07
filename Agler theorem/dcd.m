@@ -104,10 +104,10 @@ for iter = 1:opts.maxIter
     end
     
     for i = 1:length(EdgeRepi)
-        for j = 1:length(EdgeRepj)
-            EdgeIndex = [EdgeRepi(i),EdgeRepj(j)];
+        %for j = 1:length(EdgeRepj)
+            EdgeIndex = [EdgeRepi(i),EdgeRepj(i)];
             Edge{EdgeIndex(1),EdgeIndex(2)} = edgeProblem(EdgeIndex,Xk,Edge{EdgeIndex(1),EdgeIndex(2)},X,Mc,opts);
-        end
+        %end
     end
     
     %% Step 3: Overlapping nodes and edges update the dual virables
@@ -117,10 +117,10 @@ for iter = 1:opts.maxIter
     end
     
     for i = 1:length(EdgeRepi)
-        for j = 1:length(EdgeRepj)
-            EdgeIndex = [EdgeRepi(i),EdgeRepj(j)];
+        %for j = 1:length(EdgeRepj)
+            EdgeIndex = [EdgeRepi(i),EdgeRepj(i)];
             Edge{EdgeIndex(1),EdgeIndex(2)} = edgeMultipliers(EdgeIndex,Xk,Edge{EdgeIndex(1),EdgeIndex(2)},Mc,opts);
-        end
+        %end
     end
     %% check convergence & output
     [Stop, Info] = ConverCheck(Xk,X,Node,Edge,Mc,EdgeRepi,EdgeRepj,opts);
