@@ -53,6 +53,12 @@ for i = 1:length(nodeCR)
             lIndexj    = accDim(lOverlapInd(j)):accDim(lOverlapInd(j)+1)-1;
             Cost      = Cost + norm(Xk(lIndexi,lIndexj) - tmpEdge.LocalVariables{tmpClique} ...
                        + 1/opts.mu*tmpEdge.LocalMultipliers{tmpClique},'fro').^2;
+                   
+           % added for edges
+           Cost       = Cost + norm(X{nodeCR(i)} - tmpEdge.Xi ...
+                       + 1/opts.mu*tmpEdge.XiMultipliers{tmpClique},'fro').^2;
+           Cost       = Cost + norm(X{nodeCR(j)} - tmpEdge.Xj ...
+                       + 1/opts.mu*tmpEdge.XjMultipliers{tmpClique},'fro').^2;
         end
     end
 end

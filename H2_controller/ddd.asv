@@ -184,9 +184,7 @@ for iter = 1:opts.maxIter
     
     for k = 1:length(EdgeRepi)
         Eind = [EdgeRepi(k),EdgeRepj(k)];
-        X1   = Node{Eind(1)}.Xi;
-        X2   = Node{Eind(2)}.Xi;
-        Edge{Eind(1),Eind(2)} = edgeMultipliers(Edge{Eind(1),Eind(2)},X1,X2,opts,iter);
+        Edge{Eind(1),Eind(2)} = edgeMultipliers(Edge{Eind(1),Eind(2)},opts,iter);
     end
     %% check convergence & output
     [Stop, Info] = ConverCheck(Node,Edge,NodeOverInd,EdgeRepi,EdgeRepj,opts);
