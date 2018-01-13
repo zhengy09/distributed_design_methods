@@ -4,10 +4,10 @@ function  Edge = edgeMultipliers(Edge,X1,X2,opts,iter)
     tstart = tic;
     for i = 1:length(Edge.clique)
         Edge.LocalMultipliers{i}  = Edge.LocalMultipliers{i} + ... 
-                        opts.mu*(Edge.CliqueVariables{i} - Edge.LocalVariables{i});
+                        (Edge.CliqueVariables{i} - Edge.LocalVariables{i});
                     
-        Edge.XiMultipliers{i}    = Edge.XiMultipliers{i} + opts.mu*(X1{i} - Edge.Xi);
-        Edge.XjMultipliers{i}    = Edge.XjMultipliers{i} + opts.mu*(X2{i} - Edge.Xj);
+        Edge.XiMultipliers{i}    = Edge.XiMultipliers{i} + (X1{i} - Edge.Xi);
+        Edge.XjMultipliers{i}    = Edge.XjMultipliers{i} + (X2{i} - Edge.Xj);
     end
     Edge.time(iter,2) = toc(tstart); 
 end

@@ -4,11 +4,17 @@ clc;clear;close all
 %% paramters
 
 % distributed generator units
-Rt1 = 0.2; Ct1 = 2.2 * 10^(-3); Lt1 = 1.8 * 10^(-3);
-Rt2 = 0.3; Ct2 = 1.9 * 10^(-3); Lt2 = 2.0 * 10^(-3);
-Rt3 = 0.1; Ct3 = 1.7 * 10^(-3); Lt3 = 2.2 * 10^(-3);
-Rt4 = 0.5; Ct4 = 2.5 * 10^(-3); Lt4 = 3.0 * 10^(-3);
-Rt5 = 0.4; Ct5 = 2.0 * 10^(-3); Lt5 = 1.2 * 10^(-3);
+% Rt1 = 0.2; Ct1 = 2.2 * 10^(-3); Lt1 = 1.8 * 10^(-3);
+% Rt2 = 0.3; Ct2 = 1.9 * 10^(-3); Lt2 = 2.0 * 10^(-3);
+% Rt3 = 0.1; Ct3 = 1.7 * 10^(-3); Lt3 = 2.2 * 10^(-3);
+% Rt4 = 0.5; Ct4 = 2.5 * 10^(-3); Lt4 = 3.0 * 10^(-3);
+% Rt5 = 0.4; Ct5 = 2.0 * 10^(-3); Lt5 = 1.2 * 10^(-3);
+
+Rt1 = 0.2; Ct1 = 2.2 * 10^(0); Lt1 = 1.8 * 10^(0);
+Rt2 = 0.3; Ct2 = 1.9 * 10^(0); Lt2 = 2.0 * 10^(0);
+Rt3 = 0.1; Ct3 = 1.7 * 10^(0); Lt3 = 2.2 * 10^(0);
+Rt4 = 0.5; Ct4 = 2.5 * 10^(0); Lt4 = 3.0 * 10^(0);
+Rt5 = 0.4; Ct5 = 2.0 * 10^(0); Lt5 = 1.2 * 10^(0);
 
 % Transmission lines
 R12 = 0.05;  L12 = 2.1 * 10^(-6); 
@@ -126,10 +132,15 @@ Q = cell(5,1);R = cell(5,1);
       0 1 1 1 1;
       0 0 0 1 1];
   
-   [K,Cost, info] = ddd(G,hA,hB,hM,Q,R);
- [K1,Cost1, info] = cdd(G,hA,hB,hM,Q,R);
  
- [Cos, Cost1]
+ [K1,Cost1, info1] = cdd(G,hA,hB,hM,Q,R);
+ 
+ opts.eps = 1.0e-3;
+ opts.MaxIter = 500;
+ opts.mu  = 10;
+ [K,Cost, info] = ddd(G,hA,hB,hM,Q,R,opts);
+ 
+ [Cost, Cost1]
 
 %% decentralized H2 controller by Yalmip
 

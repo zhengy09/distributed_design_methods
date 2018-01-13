@@ -12,7 +12,8 @@ ConIter   = zeros(Num,1);
 TimeTotal = zeros(Num,1); 
 
 for i = 1:Num
-
+    n = 10;
+    thresh = 5;
 
 %% random generate a sparse positive semidefinite matrix
     R = chordalGen(n,thresh);

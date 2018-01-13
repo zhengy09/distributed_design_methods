@@ -38,7 +38,7 @@ for i = 1:n
     gQ = blkdiag(gQ,Q{i});
     gR = blkdiag(gR,R{i});
     for j = 1:n
-        if G(i,j) ~= 0
+        if G(i,j) ~= 0 || i == j
             gA(accDimen(i):accDimen(i+1)-1,accDimen(j):accDimen(j+1)-1) = A{i,j};
         end
     end
@@ -63,11 +63,17 @@ info.time    = [timeTotal,sol.solvertime];
 info.gA = gA;
 info.gB = gB;
 info.gM = gM;
+info.X = value(X);
+info.Y = value(Y);
+info.Z = value(Z);
 
 %% set values
 X = value(X);
 Cost = value(Cost);
 K = value(Z)*X^(-1);
+
+ClosedSys = ss(gA - gB*K,gM,[gQ^(1/2);gR^(1/2)*K],[]);
+info.h2  = norm(ClosedSys,2);
 
 end
 

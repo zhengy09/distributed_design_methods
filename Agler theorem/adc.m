@@ -109,11 +109,9 @@ for iter = 1:opts.maxIter
     end
     
     for i = 1:length(EdgeRepi)
-        %for j = 1:length(EdgeRepj)
             eInd = [EdgeRepi(i),EdgeRepj(i)];
             Edge{eInd(1),eInd(2)}.LocalMultipliers = Edge{eInd(1),eInd(2)}.LocalMultipliers + ...
                                 opts.mu *(sum(Edge{eInd(1),eInd(2)}.LocalVariables)-Edge{eInd(1),eInd(2)}.value);
-        %end
     end
     %% check convergence & output
     [Stop, Info] = ConverCheckDC(Xk,X,Mc,opts);

@@ -1,7 +1,7 @@
-function Node = nodeProblem(Node,A,opts,iter)
+function [Node,sol] = nodeProblem(Node,A,opts,iter)
 % Update the local variables in each node
 
-epsilon = 1e-2;
+epsilon = 1e-2;%1e-2;
 
 NumLocalVariables = length(Node.clique);               % number of local variables
 LocalVariables    = cell(NumLocalVariables,1);
@@ -9,17 +9,16 @@ for i = 1:NumLocalVariables
     LocalVariables{i} = sdpvar(size(A,1));
 end
 X = sdpvar(size(A,1));
-Y = sdpvar(size(Node.Y,1),size(Node.Y,2));
-Z = sdpvar(size(Node.Z,1),size(Node.Z,2));
+Y = sdpvar(size(Node.Y,1),size(Node.Y,2),'full');
+Z = sdpvar(size(Node.Z,1),size(Node.Z,2),'full');
 
 %% define the cost function
-Cost = 0;
+Cost = trace(Node.Q*X+Node.R*Y);
 for i = 1:NumLocalVariables
-    Cost = Cost + norm(Node.CliqueVariables{i} - LocalVariables{i} + 1/opts.mu*Node.LocalMultipliers{i},'fro').^2;
-    Cost = Cost + norm(Node.Xi{i} - X + 1/opts.mu*Node.XiMultipliers{i},'fro').^2;
-    
-    Cost = Cost + trace(Node.Q*X+Node.R*Y);
+    Cost = Cost + opts.mu/2*norm(Node.CliqueVariables{i} - LocalVariables{i} + Node.LocalMultipliers{i},'fro').^2;
+    Cost = Cost + opts.mu/2*norm(Node.Xi{i} - X + Node.XiMultipliers{i},'fro').^2;
 end
+
 
 %% define the constraints
 tmp = LocalVariables{1};

@@ -1,22 +1,32 @@
-function [K, Cost, info] = ddd(G,A,B,M,Q,R)
+function [K, Cost, info] = ddd(G,A,B,M,Q,R,userOpts)
 % Distributed Design of Decentralized Controoler using chordal decomposition and ADMM
 % dot(x) = Ax + Bu + Md
 % u = Kx, K is block diagonal
 % Q,R cell structure, performance index
 
 %% parameters
-opts.mu      = 1;
-opts.maxIter = 100;
+opts.mu      = 10;
+opts.maxIter = 500;
 opts.verbose = true;          % display output information
 opts.subbose = false;          % display output information for each subproblem
 opts.eps     = 1e-4;
 opts.global  = true;
 
+if(nargin >= 7)
+    fnames = fieldnames(userOpts);
+    for n=1:length(fnames)
+        if isfield(opts,fnames{n})
+            opts.(fnames{n}) = userOpts.(fnames{n});
+        end
+    end
+end
+
+
 time = zeros(opts.maxIter,1);
 
 %% finding cliques
 n     = size(G,1);            % Dimension number of nodes
-G     = spones(G);            % Sparsity pattern
+G     = spones(G+eye(n));            % Sparsity pattern
 Ge    = chordalExt(G);        % Chordal extension
 Mc    = maximalCliques(Ge);   % Maximal cliques, each column is a clique  
 Nc    = size(Mc,2);           % Number of cliques
@@ -149,31 +159,44 @@ if opts.verbose == true
     fprintf(' Min. Clique Size         %8d\n',min(sum(Mc,1)))
     fprintf(' Chordal processsing (s): %8.4f\n', timeChordal)
     fprintf('-------------------------------------\n')
-    fprintf(' Iter.    Error    Time (s)\n')
+    fprintf(' Iter.    presi    dresi    Time (s)  Cost\n')
 end
 
 tic
 for iter = 1:opts.maxIter
     
-    %% Step 1: Each clique solve a subproblem in parallel     
+    NodeOld = Node;  % for convergence checking
+    %% Step 1: Each clique solve a subproblem in parallel 
+    CliqueInfea = 0;
     for k = 1:Nc
-        [Node,Edge,Clique{k}] = cliqueProblem(k,Clique{k},Node,Edge,A,opts,iter);
+        [Node,Edge,Clique{k},sol] = cliqueProblem(k,Clique{k},Node,Edge,A,opts,iter);
+        if sol.problem == 1
+            CliqueInfea = CliqueInfea + 1;
+        end
     end
     
     %% Step 2: Overlapping nodes and edges solve their own subproblem to update
     % local virables, which can be computed in parallel
+    NodeInfea = 0;
     for i = 1:length(NodeOverInd)
         nodeIndex = NodeOverInd(i);
-        Node{nodeIndex} = nodeProblem(Node{nodeIndex},A{nodeIndex,nodeIndex},opts,iter);
+        [Node{nodeIndex},sol] = nodeProblem(Node{nodeIndex},A{nodeIndex,nodeIndex},opts,iter);
+        if sol.problem == 1
+            NodeInfea = NodeInfea + 1;
+        end
     end
     
+    EdgeInfea = 0;
     for k = 1:length(EdgeRepi)
         Eind = [EdgeRepi(k),EdgeRepj(k)];
         A12  = A{Eind(1),Eind(2)};
         A21  = A{Eind(2),Eind(1)};
         X1   = Node{Eind(1)}.Xi;
         X2   = Node{Eind(2)}.Xi;
-        Edge{Eind(1),Eind(2)} = edgeProblem(Edge{Eind(1),Eind(2)},A12,A21,X1,X2,opts,iter);
+        [Edge{Eind(1),Eind(2)},sol] = edgeProblem(Edge{Eind(1),Eind(2)},A12,A21,X1,X2,opts,iter);
+        if sol.problem == 1
+            EdgeInfea = EdgeInfea + 1;
+        end
     end
     
     %% Step 3: Overlapping nodes and edges update the dual virables
@@ -189,14 +212,14 @@ for iter = 1:opts.maxIter
         Edge{Eind(1),Eind(2)} = edgeMultipliers(Edge{Eind(1),Eind(2)},X1,X2,opts,iter);
     end
     %% check convergence & output
-    [Stop, Info] = ConverCheck(Node,Edge,NodeOverInd,EdgeRepi,EdgeRepj,opts);
+    [Stop, Info] = ConverCheck(NodeOld,Node,Edge,NodeOverInd,EdgeRepi,EdgeRepj,opts);
     time(iter) = toc;
     if opts.verbose == true
-        fprintf('%5d   %8.4f   %6.2f\n', iter,Info.presi,time(iter));
+        fprintf('%5d   %8.4f  %8.4f   %6.2f  %6.3f %4d %4d %4d\n', iter,Info.presi,Info.dresi,time(iter),Info.cost,CliqueInfea,NodeInfea,EdgeInfea);
     end
     
     if Stop == true
-        break;
+        %break;
     end
 end
 
@@ -231,7 +254,10 @@ info.timeTotal    = [time(iter),timesubtotal,timeparal];  % Total time; time for
 info.time.chordal = timeChordal;
 info.time.clique  = timeClique; 
 info.time.node    = timeNode; 
-info.time.edge    = timeEdge; 
+info.time.edge    = timeEdge;
+
+info.Node = Node;
+info.Edge = Edge;
 %%
 X       = [];
 Y       = [];
@@ -243,36 +269,51 @@ for i = 1:n
     Y = blkdiag(Y,Node{i}.Y);
     Z = blkdiag(Z,Node{i}.Z);
     Cost = Cost + trace(Q{i}*Node{i}.X)+trace(R{i}*Node{i}.Y);
-%    tmpEig(i) = min(eig(X{i}));
 end
+
+info.X = value(X);
+info.Y = value(Y);
+info.Z = value(Z);
 
 K = Z*X^(-1);
 
 
-% if opts.global
-%     accDimen  = [cumsum([1;subDim])]; 
-%     globalA   = zeros(sum(subDim));  % gloabl state space model
-%     globalP   = zeros(sum(subDim)); 
-%     for i = 1:n
-%         globalP(accDimen(i):accDimen(i+1)-1,accDimen(i):accDimen(i+1)-1) = X{i};
-%         for j = 1:n
-%             if G(i,j) ~= 0
-%                 globalA(accDimen(i):accDimen(i+1)-1,accDimen(j):accDimen(j+1)-1) = A{i,j};
-%             end
-%         end
+
+gB   = [];
+gM   = [];
+gQ = [];
+gR = [];
+
+%if opts.global
+    accDimen  = [cumsum([1;subDim])]; 
+    gA   = zeros(sum(subDim));  % gloabl state space model
+    for i = 1:n
+        gB = blkdiag(gB,B{i});
+        gM = blkdiag(gM,M{i});
+        gQ = blkdiag(gQ,Q{i});
+        gR = blkdiag(gR,R{i});
+        for j = 1:n
+            if G(i,j) ~= 0
+                gA(accDimen(i):accDimen(i+1)-1,accDimen(j):accDimen(j+1)-1) = A{i,j};
+            end
+        end
+    end
+    info.gA = gA;
+    info.gB = gB;
+    info.gM = gM;
+    
+    ClosedSys = ss(gA - gB*K,gM,[gQ^(1/2);gR^(1/2)*K],[]);
+    info.h2  = norm(ClosedSys,2);
+    
+    % test the result
+%     flag = min(eig(globalA'*globalP + globalP*globalA));
+%     info.minEig = max(flag);
+%     if info.minEig  < 0
+%         info.flag = true;
+%     else
+%         info.flag = false;
 %     end
-%     info.globalA = globalA;
-%     info.globalP = globalP;
-%     
-%     % test the result
-% %     flag = min(eig(globalA'*globalP + globalP*globalA));
-% %     info.minEig = max(flag);
-% %     if info.minEig  < 0
-% %         info.flag = true;
-% %     else
-% %         info.flag = false;
-% %     end
-% end
+%end
 
 %% Summaries
 if opts.verbose == true

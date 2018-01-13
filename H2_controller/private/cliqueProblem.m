@@ -1,4 +1,4 @@
-function [Node,Edge,Clique] = cliqueProblem(CliqueIndex,Clique,Node,Edge,A,opts,iter)
+function [Node,Edge,Clique,sol] = cliqueProblem(CliqueIndex,Clique,Node,Edge,A,opts,iter)
 %  Subproblem in each clique
 %  Update the variables that belong to each clique
 
@@ -22,12 +22,12 @@ accDim = cumsum([1;Clique.nodsize]);              % accumulative dimension Index
 [~,lOverlapInd,~] = intersect(nodeC,nodeCR);      % Overlapping nodes in the clique index
 
 for i = 1:length(nodeC)
-    if length(Node{nodeC(i)}.clique) == 1 && Node{nodeC(i)}.clique == CliqueIndex
+    if length(Node{nodeC(i)}.clique) == 1 %&& Node{nodeC(i)}.clique == CliqueIndex
         [ti,tj] = size(Node{nodeC(i)}.Y);
-        Node{nodeC(i)}.Yi = sdpvar(ti,tj);
+        Node{nodeC(i)}.Yi = sdpvar(ti,tj,'full');
         
         [ti,tj] = size(Node{nodeC(i)}.Z);
-        Node{nodeC(i)}.Zi = sdpvar(ti,tj);     % for computation
+        Node{nodeC(i)}.Zi = sdpvar(ti,tj,'full');     % for computation
         Cost = Cost + trace(Node{nodeC(i)}.Q*X{i})+trace(Node{nodeC(i)}.R*Node{nodeC(i)}.Yi);
     end
 end
@@ -36,11 +36,11 @@ for i = 1:length(nodeCR)
     tmpNode   = Node{nodeCR(i)};
     tmpClique = find(tmpNode.clique == CliqueIndex); 
     lIndex    = accDim(lOverlapInd(i)):accDim(lOverlapInd(i)+1)-1;
-    Cost      = Cost + norm(Xk(lIndex,lIndex) - tmpNode.LocalVariables{tmpClique} ...
-                   + 1/opts.mu*tmpNode.LocalMultipliers{tmpClique},'fro').^2;
+    Cost      = Cost + opts.mu/2*norm(Xk(lIndex,lIndex) - tmpNode.LocalVariables{tmpClique} ...
+                   + tmpNode.LocalMultipliers{tmpClique},'fro').^2;
     gIndex    = find(nodeC == nodeCR(i));
-    Cost      = Cost + norm(X{gIndex} - tmpNode.X ...
-                   + 1/opts.mu*tmpNode.XiMultipliers{tmpClique},'fro').^2;
+    Cost      = Cost + opts.mu/2*norm(X{gIndex} - tmpNode.X ...
+                   + tmpNode.XiMultipliers{tmpClique},'fro').^2;
 end
 
 % count the local variables in edges
@@ -51,14 +51,14 @@ for i = 1:length(nodeCR)
             tmpClique = find(tmpEdge.clique == CliqueIndex); 
             lIndexi    = accDim(lOverlapInd(i)):accDim(lOverlapInd(i)+1)-1;
             lIndexj    = accDim(lOverlapInd(j)):accDim(lOverlapInd(j)+1)-1;
-            Cost      = Cost + norm(Xk(lIndexi,lIndexj) - tmpEdge.LocalVariables{tmpClique} ...
-                       + 1/opts.mu*tmpEdge.LocalMultipliers{tmpClique},'fro').^2;
+            Cost      = Cost + opts.mu/2*norm(Xk(lIndexi,lIndexj) - tmpEdge.LocalVariables{tmpClique} ...
+                       + tmpEdge.LocalMultipliers{tmpClique},'fro').^2;
                    
            % added for edges
-           Cost       = Cost + norm(X{nodeCR(i)} - tmpEdge.Xi ...
-                       + 1/opts.mu*tmpEdge.XiMultipliers{tmpClique},'fro').^2;
-           Cost       = Cost + norm(X{nodeCR(j)} - tmpEdge.Xj ...
-                       + 1/opts.mu*tmpEdge.XjMultipliers{tmpClique},'fro').^2;
+           Cost       = Cost + opts.mu/2*norm(X{nodeCR(i)} - tmpEdge.Xi ...
+                       + tmpEdge.XiMultipliers{tmpClique},'fro').^2;
+           Cost       = Cost + opts.mu/2*norm(X{nodeCR(j)} - tmpEdge.Xj ...
+                       + tmpEdge.XjMultipliers{tmpClique},'fro').^2;
         end
     end
 end

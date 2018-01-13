@@ -26,19 +26,19 @@ for i = 1:length(gOverlapInd)
     end
 end
 
-%Cost = Cost + norm(Xk,'fro').^2;
+Cost = Cost + norm(Xk,'fro').^2;
 
 %% define the constraint
 Constraints = [Xk >=0];
 
 for i = 1: length(gCliqueNode)
     if length(Node{gCliqueNode(i)}.clique) == 1 &&  Node{gCliqueNode(i)}.clique== CliqueIndex
-        Constraints = [Constraints, Xk(i,i) == X(gCliqueNode(i),gCliqueNode(i))];
+        Constraints = [Constraints, Xk(i,i) == Node{gCliqueNode(i)}.value];%X(gCliqueNode(i),gCliqueNode(i))];
     end
     for j = i+1:length(gCliqueNode)
         tmpEdge = Edge{gCliqueNode(i),gCliqueNode(j)};
         if length(tmpEdge.clique) == 1 &&  tmpEdge.clique == CliqueIndex
-            Constraints = [Constraints, Xk(i,j) == X(gCliqueNode(i),gCliqueNode(j)); Xk(j,i) == Xk(i,j)];
+            Constraints = [Constraints, Xk(i,j) == tmpEdge.value];%X(gCliqueNode(i),gCliqueNode(j));];
         end
     end
 end

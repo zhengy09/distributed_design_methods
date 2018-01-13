@@ -1,4 +1,4 @@
-function Edge = edgeProblem(Edge,A12,A21,X1,X2,opts,iter)
+function [Edge,sol] = edgeProblem(Edge,A12,A21,X1,X2,opts,iter)
 % Update the local variables in each edge
 
 NonLocalVariables   = length(Edge.clique);
@@ -7,15 +7,15 @@ Xi   = sdpvar(size(Edge.Xi,1));
 Xj   = sdpvar(size(Edge.Xj,1));
 [ni,mi]  = size(A12);
 for i = 1:NonLocalVariables
-    LocalVariables{i} = sdpvar(ni,mi);
+    LocalVariables{i} = sdpvar(ni,mi,'full');
 end
 
 %% define the cost function
 Cost = 0;
 for i = 1:NonLocalVariables
-    Cost = Cost + norm(Edge.CliqueVariables{i} - LocalVariables{i} + 1/opts.mu*Edge.LocalMultipliers{i},'fro').^2;
-    Cost = Cost + norm(X1{i} - Xi + 1/opts.mu*Edge.XiMultipliers{i},'fro').^2;
-    Cost = Cost + norm(X2{i} - Xj + 1/opts.mu*Edge.XjMultipliers{i},'fro').^2;
+    Cost = Cost + opts.mu/2*norm(Edge.CliqueVariables{i} - LocalVariables{i} + Edge.LocalMultipliers{i},'fro').^2;
+    Cost = Cost + opts.mu/2*norm(X1{i} - Xi + Edge.XiMultipliers{i},'fro').^2;
+    Cost = Cost + opts.mu/2*norm(X2{i} - Xj + Edge.XjMultipliers{i},'fro').^2;
 end
 
 %% define the constraints
