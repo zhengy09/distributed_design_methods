@@ -5,11 +5,11 @@ function [K, Cost, info] = ddd(G,A,B,M,Q,R,userOpts)
 % Q,R cell structure, performance index
 
 %% parameters
-opts.mu      = 10;
+opts.mu      = 1000;
 opts.maxIter = 500;
 opts.verbose = true;          % display output information
 opts.subbose = false;          % display output information for each subproblem
-opts.eps     = 1e-4;
+opts.eps     = 1e-3;
 opts.global  = true;
 
 if(nargin >= 7)
@@ -20,6 +20,12 @@ if(nargin >= 7)
         end
     end
 end
+
+gB   = [];
+gM   = [];
+gQ = [];
+gR = [];
+
 
 
 time = zeros(opts.maxIter,1);
@@ -48,6 +54,25 @@ for i = 1:n
         end
     end
 end
+
+%% Global dynamics
+accDimen  = [cumsum([1;subDim])]; 
+gA   = zeros(sum(subDim));  % gloabl state space model
+for i = 1:n
+    gB = blkdiag(gB,B{i});
+    gM = blkdiag(gM,M{i});
+    gQ = blkdiag(gQ,Q{i});
+    gR = blkdiag(gR,R{i});
+    for j = 1:n
+        if G(i,j) ~= 0
+            gA(accDimen(i):accDimen(i+1)-1,accDimen(j):accDimen(j+1)-1) = A{i,j};
+        end
+    end
+end
+info.gA = gA;
+info.gB = gB;
+info.gM = gM;
+
 
 %% Overlapping information
 tic;
@@ -214,12 +239,25 @@ for iter = 1:opts.maxIter
     %% check convergence & output
     [Stop, Info] = ConverCheck(NodeOld,Node,Edge,NodeOverInd,EdgeRepi,EdgeRepj,opts);
     time(iter) = toc;
+    
+    
+    X       = [];
+    Z       = [];
+    for i = 1:n
+        X = blkdiag(X,Node{i}.X);
+        Z = blkdiag(Z,Node{i}.Z);
+    end
+    K = Z*X^(-1);
+    ClosedSys = ss(gA - gB*K,gM,[gQ^(1/2);gR^(1/2)*K],[]);
+    h2  = norm(ClosedSys,2);
+
+
     if opts.verbose == true
-        fprintf('%5d   %8.4f  %8.4f   %6.2f  %6.3f %4d %4d %4d\n', iter,Info.presi,Info.dresi,time(iter),Info.cost,CliqueInfea,NodeInfea,EdgeInfea);
+        fprintf('%5d   %8.4f  %8.4f   %6.2f  %6.3f % 6.3f %4d %4d %4d\n', iter,Info.presi,Info.dresi,time(iter),Info.cost,h2,CliqueInfea,NodeInfea,EdgeInfea);
     end
     
     if Stop == true
-        %break;
+        break;
     end
 end
 
@@ -256,6 +294,8 @@ info.time.clique  = timeClique;
 info.time.node    = timeNode; 
 info.time.edge    = timeEdge;
 
+info.iter = iter;
+
 info.Node = Node;
 info.Edge = Edge;
 %%
@@ -263,7 +303,6 @@ X       = [];
 Y       = [];
 Z       = [];
 Cost    = 0;
-tmpEig  = zeros(n,1);
 for i = 1:n
     X = blkdiag(X,Node{i}.X);
     Y = blkdiag(Y,Node{i}.Y);
@@ -279,32 +318,11 @@ K = Z*X^(-1);
 
 
 
-gB   = [];
-gM   = [];
-gQ = [];
-gR = [];
 
-%if opts.global
-    accDimen  = [cumsum([1;subDim])]; 
-    gA   = zeros(sum(subDim));  % gloabl state space model
-    for i = 1:n
-        gB = blkdiag(gB,B{i});
-        gM = blkdiag(gM,M{i});
-        gQ = blkdiag(gQ,Q{i});
-        gR = blkdiag(gR,R{i});
-        for j = 1:n
-            if G(i,j) ~= 0
-                gA(accDimen(i):accDimen(i+1)-1,accDimen(j):accDimen(j+1)-1) = A{i,j};
-            end
-        end
-    end
-    info.gA = gA;
-    info.gB = gB;
-    info.gM = gM;
     
-    ClosedSys = ss(gA - gB*K,gM,[gQ^(1/2);gR^(1/2)*K],[]);
-    info.h2  = norm(ClosedSys,2);
-    
+ClosedSys = ss(gA - gB*K,gM,[gQ^(1/2);gR^(1/2)*K],[]);
+info.h2  = norm(ClosedSys,2);
+
     % test the result
 %     flag = min(eig(globalA'*globalP + globalP*globalA));
 %     info.minEig = max(flag);

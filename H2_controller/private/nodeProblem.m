@@ -30,7 +30,7 @@ Constraints = [tmp == -(A*X - Node.B*Z) - (A*X - Node.B*Z)' - Node.M*Node.M'];
 Constraints = [Constraints, X-epsilon*eye(size(A)) >=0, [Y Z;Z' X] >=0];
 
 %% Get solutions
-options = sdpsettings('verbose',opts.subbose,'solver','sedumi');
+options = sdpsettings('verbose',opts.subbose,'solver','sedumi','cachesolvers',1);
 sol     = optimize(Constraints,Cost,options);
 
 Node.time(iter,1) = sol.solvertime; 

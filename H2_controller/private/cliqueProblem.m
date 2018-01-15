@@ -87,7 +87,7 @@ end
 Constraints = [Constraints,Xk >=0];
 
 %% Get solutions
-options = sdpsettings('verbose',opts.subbose,'solver','sedumi');
+options = sdpsettings('verbose',opts.subbose,'solver','sedumi','cachesolvers',1);
 sol     = optimize(Constraints,Cost,options);
 Xk      = value(Xk);
 

@@ -26,7 +26,7 @@ end
 Constraints = [tmp == -(Xi*A21'+A12*Xj)];
 
 %% Get solutions
-options = sdpsettings('verbose',opts.subbose,'solver','sedumi');
+options = sdpsettings('verbose',opts.subbose,'solver','sedumi','cachesolvers',1);
 sol     = optimize(Constraints,Cost,options);
 Edge.time(iter) = sol.solvertime; 
 %% set values
