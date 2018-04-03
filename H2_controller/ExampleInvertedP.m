@@ -25,12 +25,12 @@ R{1} = 1; R{2} = R{1}; R{3} = R{1};
 
 [K1,Cost1, info1] = cdd(Gp,A,B,M,Q,R);
  
-opts.eps = 1.0e-3;
+opts.eps = 1.0e-6;
 opts.maxIter = 500;
-opts.mu  = 100;
+opts.mu  = 500;
 [K2,Cost2, info2] = ddd(Gp,A,B,M,Q,R,opts);
 
-save Ex2Inverted1
+% save Ex2Inverted1
 
 % opts.eps = 1.0e-4;
 % opts.maxIter = 2000;

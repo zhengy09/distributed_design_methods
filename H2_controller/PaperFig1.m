@@ -36,6 +36,8 @@ for i = 1:3
 end
 fprintf('%3.4f\n',PerIm);
 
+[mean(mH2(IndSuc{1})),mean(mH2(IndSuc{3})),mean(mH2(IndSuc{4})),mean(mH2(IndSuc{5}))]
+
 %% Performance improvement for the common instances
 C = intersect(IndSuc{3},IndSuc{4});
 C = intersect(C,IndSuc{5});
@@ -53,11 +55,13 @@ PercomIm
 
 %% Figures
 figure;
-histogram(Iter,30,'Normalization','cdf');
-set(gca,'YTick',[0.1:0.1:1],'TickLabelInterpreter','latex','fontsize',9)
-xlabel('Iteractions to convergence','Interpreter','latex'); grid on;
-set(gcf,'Position',[250 150 450 350]);
+histogram(Iter,30,'Normalization','cdf','FaceColor','[0.8, 0.8, 0.8]');
+set(gca,'YTick',[0:0.2:1],'TickLabelInterpreter','latex','fontsize',9)
+xlabel('Iterations to convergence','Interpreter','latex'); grid on;
+set(gcf,'Position',[250 150 350 250]);
 
+folderAddress = 'F:/Goolge Drive/1 Paper writing/2 Decentralized stabilization of linear systems/Journal paper/Figures/';
+print(gcf,[folderAddress,'ChainIterations'],'-painters','-depsc2','-r600')
 
 
 

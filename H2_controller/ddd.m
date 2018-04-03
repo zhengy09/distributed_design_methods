@@ -253,7 +253,7 @@ for iter = 1:opts.maxIter
 
 
     if opts.verbose == true
-        fprintf('%5d   %8.4f  %8.4f   %6.2f  %6.3f % 6.3f %4d %4d %4d\n', iter,Info.presi,Info.dresi,time(iter),Info.cost,h2,CliqueInfea,NodeInfea,EdgeInfea);
+        fprintf('%5d   %7.5f  %8.4f   %6.2f  %6.3f % 6.3f %4d %4d %4d\n', iter,Info.presi,Info.dresi,time(iter),Info.cost,h2,CliqueInfea,NodeInfea,EdgeInfea);
     end
     
     if Stop == true
