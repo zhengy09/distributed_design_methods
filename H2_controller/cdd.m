@@ -1,8 +1,15 @@
-function [K,Cost, info] = cdd(G,A,B,M,Q,R)
+function [K,Cost, info] = cdd(G,A,B,M,Q,R,usersflag)
 % Centralized Design of decentralized optimal controller
 % dot(x) = Ax + Bu + Md
 % u = Kx, K is block diagonal
 % Q,R cell structure, performance index
+
+if(nargin >= 7)
+    Flag = usersflag;
+else
+    Flag = 1;
+end
+
 
 opts.subbose = true;
 epsilon      = 1e-2;
@@ -55,8 +62,18 @@ Constraints = [Constraints, [Y Z;Z' X] >= 0];
 
 Cost = trace(gQ*X) + trace(gR*Y);
 
-options = sdpsettings('verbose',opts.subbose,'solver','sedumi');
-sol     = optimize(Constraints,Cost,options);
+if Flag == 1  % use SeDuMi
+    options = sdpsettings('verbose',opts.subbose,'solver','sedumi');
+    sol     = optimize(Constraints,Cost,options);
+    
+    %model = export(Constraints,Cost,options);
+elseif Flag == 2  % SparseCoLO
+    opts          = sdpsettings('verbose',1,'solver','sparsecolo','sparsecolo.SDPsolver','sedumi','sparsecolo.domain',1,'sparsecolo.range',0,'sparsecolo.EQorLMI',1);
+    sol     = optimize(Constraints,Cost,opts);
+elseif Flag == 3  % CDCS
+    options = sdpsettings('verbose',opts.subbose,'solver','cdcs');
+    sol     = optimize(Constraints,Cost,options);
+end
 
 timeTotal    = toc;
 info.time    = [timeTotal,sol.solvertime]; 

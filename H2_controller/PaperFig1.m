@@ -55,7 +55,7 @@ PercomIm
 figure;
 histogram(Iter,30,'Normalization','cdf');
 set(gca,'YTick',[0.1:0.1:1],'TickLabelInterpreter','latex','fontsize',9)
-xlabel('Iteractions to convergence','Interpreter','latex'); grid on;
+xlabel('Iterations to convergence','Interpreter','latex'); grid on;
 set(gcf,'Position',[250 150 450 350]);
 
 

@@ -4,17 +4,17 @@ clc;clear;close all
 %% paramters
 
 % distributed generator units
-% Rt1 = 0.2; Ct1 = 2.2 * 10^(-3); Lt1 = 1.8 * 10^(-3);
-% Rt2 = 0.3; Ct2 = 1.9 * 10^(-3); Lt2 = 2.0 * 10^(-3);
-% Rt3 = 0.1; Ct3 = 1.7 * 10^(-3); Lt3 = 2.2 * 10^(-3);
-% Rt4 = 0.5; Ct4 = 2.5 * 10^(-3); Lt4 = 3.0 * 10^(-3);
-% Rt5 = 0.4; Ct5 = 2.0 * 10^(-3); Lt5 = 1.2 * 10^(-3);
+Rt1 = 0.2; Ct1 = 2.2 * 10^(-3); Lt1 = 1.8 * 10^(-3);
+Rt2 = 0.3; Ct2 = 1.9 * 10^(-3); Lt2 = 2.0 * 10^(-3);
+Rt3 = 0.1; Ct3 = 1.7 * 10^(-3); Lt3 = 2.2 * 10^(-3);
+Rt4 = 0.5; Ct4 = 2.5 * 10^(-3); Lt4 = 3.0 * 10^(-3);
+Rt5 = 0.4; Ct5 = 2.0 * 10^(-3); Lt5 = 1.2 * 10^(-3);
 
-Rt1 = 0.2; Ct1 = 2.2 * 10^(0); Lt1 = 1.8 * 10^(0);
-Rt2 = 0.3; Ct2 = 1.9 * 10^(0); Lt2 = 2.0 * 10^(0);
-Rt3 = 0.1; Ct3 = 1.7 * 10^(0); Lt3 = 2.2 * 10^(0);
-Rt4 = 0.5; Ct4 = 2.5 * 10^(0); Lt4 = 3.0 * 10^(0);
-Rt5 = 0.4; Ct5 = 2.0 * 10^(0); Lt5 = 1.2 * 10^(0);
+% Rt1 = 0.2; Ct1 = 2.2 * 10^(0); Lt1 = 1.8 * 10^(0);
+% Rt2 = 0.3; Ct2 = 1.9 * 10^(0); Lt2 = 2.0 * 10^(0);
+% Rt3 = 0.1; Ct3 = 1.7 * 10^(0); Lt3 = 2.2 * 10^(0);
+% Rt4 = 0.5; Ct4 = 2.5 * 10^(0); Lt4 = 3.0 * 10^(0);
+% Rt5 = 0.4; Ct5 = 2.0 * 10^(0); Lt5 = 1.2 * 10^(0);
 
 % Transmission lines
 R12 = 0.05;  L12 = 2.1 * 10^(-6); 
@@ -121,11 +121,17 @@ Bg = blkdiag(hB1,hB2,hB3,hB4,hB5);
 Mg = blkdiag(hM1,hM2,hM3,hM4,hM5);
 
 
-Q1 = eye(3); R1 = 0.1;
+% Q1 = eye(3); R1 = 1;
+% Q = cell(5,1);R = cell(5,1);
+%  Q{1} = eye(3);Q{2} = eye(3);Q{3} = eye(3);Q{4} = eye(3);Q{5} = eye(3);
+%  R{1} = R1; R{2} = R1; R{3} = R1; R{4} = R1; R{5} = R1;
+
+Q1 = eye(3); R1 = 1;
 Q = cell(5,1);R = cell(5,1);
- Q{1} = eye(3);Q{2} = eye(3);Q{3} = eye(3);Q{4} = eye(3);Q{5} = eye(3);
+ Q{1} = Q1;Q{2} = Q1;Q{3} = Q1;Q{4} = Q1;Q{5} = Q1;
  R{1} = R1; R{2} = R1; R{3} = R1; R{4} = R1; R{5} = R1;
- 
+
+
  G = [1 1 1 0 0;
       1 1 0 1 0;
       1 0 1 1 0
@@ -133,14 +139,16 @@ Q = cell(5,1);R = cell(5,1);
       0 0 0 1 1];
   
  
- [K1,Cost1, info1] = cdd(G,hA,hB,hM,Q,R);
+ [K3,Cost1, info3] = cdd(G,hA,hB,hM,Q,R);
  
- opts.eps = 1.0e-3;
+ opts.eps = 1.0e-4;
  opts.MaxIter = 500;
  opts.mu  = 10;
- [K,Cost, info] = ddd(G,hA,hB,hM,Q,R,opts);
+ [K,Cost, info] = dddr(G,hA,hB,hM,Q,R,opts);
  
  [Cost, Cost1]
+ 
+ save Ex2Microgrid
 
 %% decentralized H2 controller by Yalmip
 
