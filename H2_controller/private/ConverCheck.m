@@ -36,11 +36,31 @@ end
 Info.cost = cost;
 Info.presi = presi;
 Info.dresi = dresi;
-if presi < opts.eps %&& dresi < opts.eps
+if presi < opts.eps && dresi < opts.eps
     Stop = true;
 % elseif presi < opts.eps && dresi > opts.eps
 %     opts.
 end
-
+% opts.adaptive = 1;
+% if opts.adaptive
+%     resRat = pres/dres;
+%     if resRat >= opts.mu
+%         itPinf = itPinf+1;
+%         itDinf = 0;
+%         if itPinf >= opts.rhoIt
+%             % ratio of pinf and dinf remained large for long => rescale rho
+%             itPinf = 0;
+%             opts.rho = min(opts.rho*opts.tau, opts.rhoMax);
+%         end
+%     elseif 1/resRat >= opts.mu
+%         itDinf = itDinf+1;
+%         itPinf = 0;
+%         if itDinf >= opts.rhoIt
+%             % ratio of pinf and dinf remained small for long => rescale rho
+%             itDinf = 0;
+%             opts.rho = max(opts.rho/opts.tau, opts.rhoMin);
+%         end
+%     end
+% end
 
 

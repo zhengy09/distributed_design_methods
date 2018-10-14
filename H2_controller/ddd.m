@@ -5,7 +5,7 @@ function [K, Cost, info] = ddd(G,A,B,M,Q,R,userOpts)
 % Q,R cell structure, performance index
 
 %% parameters
-opts.mu      = 1000;
+opts.mu      = 5;
 opts.maxIter = 500;
 opts.verbose = true;          % display output information
 opts.subbose = false;          % display output information for each subproblem
@@ -33,7 +33,7 @@ time = zeros(opts.maxIter,1);
 %% finding cliques
 n     = size(G,1);            % Dimension number of nodes
 G     = spones(G+eye(n));            % Sparsity pattern
-Ge    = chordalExt(G);        % Chordal extension
+Ge    = chordalExt(G+G');        % Chordal extension
 Mc    = maximalCliques(Ge);   % Maximal cliques, each column is a clique  
 Nc    = size(Mc,2);           % Number of cliques
 
