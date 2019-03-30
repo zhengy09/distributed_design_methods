@@ -21,6 +21,12 @@ nodeCR = Clique.nodeR;                            % Overlapping nodes in this cl
 accDim = cumsum([1;Clique.nodsize]);              % accumulative dimension Index
 [~,lOverlapInd,~] = intersect(nodeC,nodeCR);      % Overlapping nodes in the clique index
 
+for i = 1:length(nodeC)
+    if length(Node{nodeC(i)}.clique) == 1 && Node{nodeC(i)}.clique == CliqueIndex
+        Cost = Cost + trace(P{i});
+    end
+end
+
 for i = 1:length(nodeCR)  
     tmpNode   = Node{nodeCR(i)};
     tmpClique = find(tmpNode.clique == CliqueIndex); 

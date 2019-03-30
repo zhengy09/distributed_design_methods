@@ -1,15 +1,16 @@
-function [P, info] = dst(A,G)
-% Distributed Stability Test using chordal decomposition and ADMM
-% find P1,P2,...Pn
-%  s.t. A^TP + PA < 0
-%       P = diag(P1, P2, .., Pn) is positive definte
+function [K,X,Z,info] = dsd(A,B,Gp,Gc)
+% Distributed stabilization design using chordal decomposition and ADMM
+% find K \in S(G)
+%  s.t. A + BK is stable
 %
-% Input: graph G  -- the dynamical interconnection graph, a matrix
-%        matrix A -- cell format
+% Input: graph Gp  -- the dynamical interconnection graph, a matrix
+%        graph Gc  -- the communication graph
+%        matrix A  -- cell format  dot(x) = Ax + Bu
+%        matrix B  -- cell format
 
 %% parameters
 opts.mu      = 1;
-opts.maxIter = 10;
+opts.maxIter = 20;
 opts.verbose = true;          % display output information
 opts.subbose = false;          % display output information for each subproblem
 opts.eps     = 1e-4;
@@ -18,22 +19,25 @@ opts.global  = true;
 time = zeros(opts.maxIter,1);
 
 %% finding cliques
-n     = size(G,1);            % Dimension number of nodes
-G     = spones(G);            % Sparsity pattern
-Ge    = chordalExt(G);        % Chordal extension
-Mc    = maximalCliques(Ge);   % Maximal cliques, each column is a clique  
-Nc    = size(Mc,2);           % Number of cliques
+n     = size(Gp,1);            % Dimension number of nodes
+Gs    = Gp | Gp' | Gc | Gc';   % super-graph, connections in the whole system
+Gs    = spones(Gs);            % Sparsity pattern of the LMI (A + BK)'P + P(A + BK)
+Ge    = chordalExt(Gs);        % Chordal extension
+Mc    = maximalCliques(Ge);    % Maximal cliques, each column is a clique  
+Nc    = size(Mc,2);            % Number of cliques
 
 %% process the model data such that Ge and A are consistent
-subDimension = zeros(n,1);
+subDimState = zeros(n,1);
+subDimInput = zeros(n,1);
 for i = 1:n
-    subDimension(i) = size(A{i,i},1);
+    subDimState(i) = size(A{i,i},1);
+    subDimInput(i) = size(B{i},2);
 end
 
 for i = 1:n
     for j = 1:n
         if Ge(i,j) == 1 && isempty(A{i,j})
-            A{i,j} = zeros(subDimension(i),subDimension(j));
+            A{i,j} = zeros(subDimState(i),subDimState(j));
         end
     end
 end
@@ -54,7 +58,8 @@ end
 Clique = cell(Nc,1);                 
 for k = 1:Nc
     Clique{k}.node    = find(Mc(:,k) == 1);                     % the nodes in this clique
-    Clique{k}.nodsize = subDimension(Clique{k}.node);           % the size of local dynamics in each node
+    Clique{k}.nodsize = subDimState(Clique{k}.node);            % the size of local dynamics in each node
+    Clique{k}.nodinpt = subDimInput(Clique{k}.node);            % the input dimension of each node
     Clique{k}.sdpsize = sum(Clique{k}.nodsize);                 % the dimension of sdp constraint
     Clique{k}.nodeR   = intersect(Clique{k}.node,NodeOverInd);  % Repeated nodes in this clique
     Clique{k}.edgeR   = [];                                     % Repeated edges in this clique
@@ -86,17 +91,18 @@ timeChordal = toc;
 
 %% Initialization
 for i = 1:n                   % local variables in nodes
-    Node{i}.P  = zeros(size(A{i,i}));    % Lyapunov variables
-    if NodeRep(i) > 1                    % set local variables for this node
+    Node{i}.X  = zeros(subDimState(i));                       % Lyapunov variables   ZX^{-1} = Kii
+    Node{i}.Z  = zeros(subDimInput(i),subDimState(i));        % Feeback gain variables
+    if NodeRep(i) > 1                                         % set local variables for this node
         for k = 1:NodeRep(i)
             % for Mi
-            Node{i}.CliqueVariables{k}  = zeros(subDimension(i));   % this variable belong to clique in node.clique(k)
-            Node{i}.LocalVariables{k}   = zeros(subDimension(i));   % Local variable in this node
-            Node{i}.LocalMultipliers{k} = zeros(subDimension(i));   % Corresponding multipliers
+            Node{i}.CliqueVariables{k}  = zeros(subDimState(i));   % this variable belong to clique in node.clique(k)
+            Node{i}.LocalVariables{k}   = zeros(subDimState(i));   % Local variable in this node
+            Node{i}.LocalMultipliers{k} = zeros(subDimState(i));   % Corresponding multipliers
             
             % for Pi
-            Node{i}.Pi{k}   = zeros(size(A{i,i}));               % This Pi belongs to node.clique(k) 
-            Node{i}.PiMultipliers{k} = zeros(size(A{i,i}));      % Corresponding multipliers
+            Node{i}.Xi{k}   = zeros(subDimState(i));                 % This Xi belongs to node.clique(k) 
+            Node{i}.XiMultipliers{k} = zeros(subDimState(i));        % Corresponding multipliers
             
             % for time record
             Node{i}.time   = zeros(opts.maxIter,2);
@@ -104,18 +110,25 @@ for i = 1:n                   % local variables in nodes
     end
 end
 
-for i = 1:n                  % local variables in edges
+for i = 1:n                  
+    for j = 1:n   % feedback variables
+        if Gc(i,j) == 1 && i ~= j   %% communication? have a feedback gain here
+             Edge{i,j}.Z = zeros(subDimInput(i),subDimState(j));
+        end
+    end
+    
+    % local variables for consensus
     for j = i+1:n
          if EdgeRep(i,j) > 1
              for k = 1:EdgeRep(i,j)
                  % for Mi
-                 Edge{i,j}.CliqueVariables{k}  = zeros(subDimension(i),subDimension(j));
-                 Edge{i,j}.LocalVariables{k}   = zeros(subDimension(i),subDimension(j));
-                 Edge{i,j}.LocalMultipliers{k} = zeros(subDimension(i),subDimension(j));
+                 Edge{i,j}.CliqueVariables{k}  = zeros(subDimState(i),subDimState(j));
+                 Edge{i,j}.LocalVariables{k}   = zeros(subDimState(i),subDimState(j));
+                 Edge{i,j}.LocalMultipliers{k} = zeros(subDimState(i),subDimState(j));
                  
-                 % for Pi and Pj
-                 Edge{i,j}.Pi = zeros(subDimension(i));   % this is equal to node{i}.P
-                 Edge{i,j}.Pj = zeros(subDimension(j));     
+                 % for Xi and Xj
+                 Edge{i,j}.Xi = zeros(subDimState(i));   % this is equal to node{i}.X
+                 Edge{i,j}.Xj = zeros(subDimState(j));     
                  
                  % for time record
                  Edge{i}.time = zeros(opts.maxIter,2);
@@ -143,23 +156,25 @@ for iter = 1:opts.maxIter
     
     %% Step 1: Each clique solve a subproblem in parallel     
     for k = 1:Nc
-        [Node,Edge,Clique{k}] = cliqueProblem(k,Clique{k},Node,Edge,A,opts,iter);
+        [Node,Edge,Clique{k}] = cliqueProblem(k,Clique{k},Node,Edge,A,B,Gc,opts,iter);
     end
     
     %% Step 2: Overlapping nodes and edges solve their own subproblem to update
     % local virables, which can be computed in parallel
     for i = 1:length(NodeOverInd)
         nodeIndex = NodeOverInd(i);
-        Node{nodeIndex} = nodeProblem(Node{nodeIndex},A{nodeIndex,nodeIndex},opts,iter);
+        Node{nodeIndex} = nodeProblem(Node{nodeIndex},A{nodeIndex,nodeIndex},B{nodeIndex},opts,iter);
     end
     
     for k = 1:length(EdgeRepi)
-        Eind = [EdgeRepi(k),EdgeRepj(k)];
-        A12  = A{Eind(1),Eind(2)};
-        A21  = A{Eind(2),Eind(1)};
-        P1   = Node{Eind(1)}.P;
-        P2   = Node{Eind(2)}.P;
-        Edge{Eind(1),Eind(2)} = edgeProblem(Edge{Eind(1),Eind(2)},A12,A21,P1,P2,opts,iter);
+        %for j = 1:length(EdgeRepj)
+            Eind = [EdgeRepi(k),EdgeRepj(k)];
+            A12  = A{Eind(1),Eind(2)};  B1 = A{Eind(1)};
+            A21  = A{Eind(2),Eind(1)};  B2 = A{Eind(2)};
+            X1   = Node{Eind(1)}.X;
+            X2   = Node{Eind(2)}.X;
+           % Edge{Eind(1),Eind(2)} = edgeProblem(Edge{Eind(1),Eind(2)},A12,A21,B1,B2,X1,X2,opts,iter);
+        %end
     end
     
     %% Step 3: Overlapping nodes and edges update the dual virables
@@ -169,8 +184,8 @@ for iter = 1:opts.maxIter
     end
     
     for k = 1:length(EdgeRepi)
-        Eind = [EdgeRepi(k),EdgeRepj(k)];
-        Edge{Eind(1),Eind(2)} = edgeMultipliers(Edge{Eind(1),Eind(2)},opts,iter);
+            Eind = [EdgeRepi(k),EdgeRepj(k)];
+            %Edge{Eind(1),Eind(2)} = edgeMultipliers(Edge{Eind(1),Eind(2)},opts,iter);
     end
     %% check convergence & output
     [Stop, Info] = ConverCheck(Node,Edge,NodeOverInd,EdgeRepi,EdgeRepj,opts);
@@ -217,30 +232,53 @@ info.time.clique  = timeClique;
 info.time.node    = timeNode; 
 info.time.edge    = timeEdge; 
 %%
-P       = cell(n,1);
+X       = cell(n,1);
+Z       = cell(n,n);
+K       = cell(n,n);
 tmpEig  = zeros(n,1);
 for i = 1:n
-    P{i} = Node{i}.P;
-    tmpEig(i) = min(eig(P{i}));
+    X{i} = Node{i}.X;
+    tmpEig(i) = min(eig(X{i}));
+    Z{i,i} = Node{i}.Z;
+    K{i,i} = Z{i,i}*X{i}^(-1);
+    for j = 1:n
+        if Gc(j,i) == 1 && i~=j
+            Z{j,i} = Edge{j,i}.Z;
+            K{j,i} = Z{j,i}*X{i}^(-1);
+        end
+    end
 end
 
 if opts.global
-    accDimen  = [cumsum([1;subDimension])]; 
-    globalA   = zeros(sum(subDimension));  % gloabl state space model
-    globalP   = zeros(sum(subDimension)); 
+    accDimenState  = [cumsum([1;subDimState])]; 
+    accDimenInput  = [cumsum([1;subDimInput])]; 
+    globalA   = zeros(sum(subDimState));                 % gloabl state space model
+    globalB   = zeros(sum(subDimState),sum(subDimInput));
+    globalX   = zeros(sum(subDimState)); 
+    globalZ   = zeros(sum(subDimInput),sum(subDimState)); 
+    globalK   = zeros(sum(subDimInput),sum(subDimState)); 
     for i = 1:n
-        globalP(accDimen(i):accDimen(i+1)-1,accDimen(i):accDimen(i+1)-1) = P{i};
+        globalX(accDimenState(i):accDimenState(i+1)-1,accDimenState(i):accDimenState(i+1)-1) = X{i};
+        globalB(accDimenState(i):accDimenState(i+1)-1,accDimenInput(i):accDimenInput(i+1)-1) = B{i};
         for j = 1:n
-            if G(i,j) ~= 0
-                globalA(accDimen(i):accDimen(i+1)-1,accDimen(j):accDimen(j+1)-1) = A{i,j};
+            if Gp(i,j) ~= 0
+                globalA(accDimenState(i):accDimenState(i+1)-1,accDimenState(j):accDimenState(j+1)-1) = A{i,j};
+            end
+            if Gc(i,j) ~=0 || i == j
+                globalZ(accDimenInput(i):accDimenInput(i+1)-1,accDimenState(j):accDimenState(j+1)-1) = Z{i,j};
+                globalK(accDimenInput(i):accDimenInput(i+1)-1,accDimenState(j):accDimenState(j+1)-1) = K{i,j};
             end
         end
     end
     info.globalA = globalA;
-    info.globalP = globalP;
+    info.globalB = globalB;
+    info.globalX = globalX;
+    info.globalZ = globalZ;
+    info.globalK = globalK;
     
     % test the result
-    flag = min(eig(globalA'*globalP + globalP*globalA));
+    Closedloop = globalA + globalB*globalK;
+    flag = eig(Closedloop*globalX + globalX*Closedloop');
     info.minEig = max(flag);
     if info.minEig  < 0
         info.flag = true;
@@ -252,8 +290,10 @@ end
 %% Summaries
 if opts.verbose == true
     fprintf('--------------------------------------\n')
-    fprintf(' Residual (Pi - P):      :   %8.2e \n',Info.presi)
-    fprintf(' Minimal eigenvalue of Pk:   %8.2e \n',min(tmpEig))
+    fprintf(' Residual (Pi - P):        %8.2e \n',Info.presi);
+    fprintf(' Max. eigenvalue A+BK      %8.2e \n',info.minEig);
+    fprintf(' Max. eigenvalue A         %8.2e \n',max(eig(globalA)));
+    fprintf(' Closed-loop stable        %8d   \n',info.flag);
     fprintf('--------------------------------------\n')
 end
 

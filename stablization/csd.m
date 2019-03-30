@@ -2,7 +2,7 @@ function [P, info] = cst(G,A)
 % Centralized Stability Test
 %
 
-opts.subbose = true;
+opts.subbose = false;
 epsilon      = 1e-2;
 
 tic
@@ -31,7 +31,7 @@ end
 %% define Cost and constraints
 Constraints = [-globalA'*P-P*globalA - epsilon*eye(sum(subDimension)) >=0];
 Constraints = [Constraints, P - epsilon*eye(sum(subDimension)) >=0];
-Cost = trace(P);
+Cost = 0;
 
 options = sdpsettings('verbose',opts.subbose,'solver','sedumi');
 sol     = optimize(Constraints,Cost,options);
