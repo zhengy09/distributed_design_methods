@@ -4,6 +4,6 @@ y test and decentralized H2 control of networked systems using ADMM.
 
 Details can be found in the following paper:
 
-*A distributed design method for optimal decentralized control using chordal decomposition and ADMM*  
+*Distributed Design for Decentralized Control using Chordal Decomposition and ADMM*  
 Yang Zheng, Maryam Kamgarpour, Aivar Sootla and Antonis Papachristodoulou  
-submitted to CDC 2018.
+submitted to IEEE Transactions on Control of Network Systems.
